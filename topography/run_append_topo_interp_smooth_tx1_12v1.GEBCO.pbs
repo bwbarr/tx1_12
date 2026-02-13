@@ -1,0 +1,65 @@
+#!/bin/csh
+
+# PBS batch script to run threaded application on casper
+
+#PBS -N append_topo_interp
+#PBS -q casper
+#PBS -A NCGD0011
+#PBS -l walltime=0:45:00
+#PBS -l select=1:ncpus=16:ompthreads=16:mpiprocs=1:mem=30GB
+#PBS -j oe
+
+set echo on
+echo "Job starting at " `date`
+
+setenv TMPDIR  /glade/derecho/scratch/bryan/tmp
+setenv OMP_NUM_THREADS ${NCPUS}
+echo "Number of threads from script = " ${OMP_NUM_THREADS}
+
+setenv GRID tx1_12v1
+setenv EDIT edit1
+setenv TOPO_DATA GEBCO_2025
+setenv SMOOTH_SCL 1.0
+setenv CEXP 1.0
+setenv NSUB 25
+
+setenv SFNC SmL${SMOOTH_SCL}_C${CEXP}
+
+setenv PATH_TOPO /glade/derecho/scratch/gmarques/${GRID}_${TOPO_DATA}_Feb2026
+
+setenv FILE_IN topo.sub${NSUB}.${GRID}.${TOPO_DATA}.${EDIT}.nc
+setenv FILE_WORK topo_work.nc
+setenv FILE_OUT ${FILE_IN:r}.${SFNC}.nc
+
+cp ${PATH_TOPO}/${FILE_IN} ${PATH_TOPO}/${FILE_WORK}
+
+cat > append_topo_interp_smooth.${GRID}.in << EOF
+&model_input_nml
+ mom6_grid_version='${GRID}'
+ mom6_horiz_grid_file='../supergrid/ORCA_gridgen/ocean_hgrid_trimmed.nc'
+ lmask_file='${PATH_TOPO}/${FILE_WORK}'
+ vname_lmask='mask'
+/
+&topo_data_nml
+ topo_data_name='${TOPO_DATA}'
+ topo_data_file='/glade/campaign/cgd/oce/datasets/obs/GEBCO_Wallcraft_2025/GEBCO_2025I2021.nc'
+ vname_lon='Longitude',
+ vname_lat='Latitude',
+ vname_z='elevation'
+/
+&model_output_nml
+ nprint=500
+ hmin = 10.0
+ smooth_scl=${SMOOTH_SCL}
+ cressman_exp = ${CEXP}
+ model_topo_file='null'
+ vname_depth='D_interp'
+ user_name='${USER}'
+/
+EOF
+
+time ../src/append_topo_interp_smooth < append_topo_interp_smooth.${GRID}.in
+
+mv ${PATH_TOPO}/${FILE_WORK} ${PATH_TOPO}/${FILE_OUT}
+
+echo "Job ending at " `date`

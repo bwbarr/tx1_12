@@ -1,0 +1,56 @@
+#!/bin/csh
+
+# PBS batch script to run threaded application on casper
+
+#PBS -N create_model_topo
+#PBS -q casper
+#PBS -A NCGD0011
+#PBS -l walltime=1:00:00
+#PBS -l select=1:ncpus=24:ompthreads=24:mpiprocs=1:mem=150GB
+#PBS -j oe
+
+set echo on
+echo "Job starting at " date
+
+setenv TMPDIR  /glade/scratch/gmarques/tmp
+setenv OMP_NUM_THREADS ${NCPUS}
+echo "Number of threads from script = " ${OMP_NUM_THREADS}
+
+setenv GRID  tx1_12v1
+setenv TOPODATA GEBCO_2025
+setenv NSUB 25
+
+setenv PATH_OUT  /glade/derecho/scratch/gmarques/${GRID}_${TOPODATA}_Feb2026
+if (! -e ${PATH_OUT} ) then
+    mkdir -p ${PATH_OUT}
+endif
+
+cat > create_model_topo.in << EOF
+&model_grid_nml
+ nx_sub=${NSUB}
+ ny_sub=${NSUB}
+ mom6_grid_version='${GRID}'
+ mom6_horiz_grid_file='../supergrid/ORCA_gridgen/ocean_hgrid_trimmed.nc'
+ grid_is_tripole=.true.
+/
+&topo_in_nml
+ topo_in_file='/glade/campaign/cgd/oce/datasets/obs/GEBCO_Wallcraft_2025/GEBCO_2025I2021.nc'
+ vname_topo_lon='Longitude',
+ vname_topo_lat='Latitude',
+ vname_topo_z='elevation'
+/
+&output_nml
+ jprnt=1000
+ ichk = 1500
+ verbose=.true.
+ do_median = .true.
+ mask_hmin=1.0
+ mask_threshold=0.5
+ output_file='topo.sub${NSUB}.${GRID}.${TOPODATA}.nc'
+ user_name='Frank Bryan'
+/
+EOF
+
+time ../src/create_model_topo < create_model_topo.in
+
+echo "Job ending at " `date`
