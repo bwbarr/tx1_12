@@ -1,0 +1,24 @@
+Original notebooks and scripts copied from:
+/glade/u/home/bryan/MOM6-modeloutputanalysis/Topography/tx1_12v1.GEBCO
+
+The order of operations is:
+
+1. run_create_topo.tx1_12v1.GEBCO.pbs
+  creates the basic cell averaged depth statistics and raw land mask
+output = opo.sub25.tx1_12v1.GEBCO_2025.nc
+
+2. MaskEdit_tx1_12v1.GEBCO.ipynb
+  edits the landmask to open key straits and other coastal modifications to best represent the areas we want to simulate and eliminate those we don't. There is much less editing in this version than at lower resolutions. Notably, I haven't tried to do anything in the Canadian Archipelago or around Greenland. We would probably eventually want to do something there in consultation with PPC. Could use some vetting from the team in general.
+output = topo.sub25.tx1_12v1.GEBCO_2025.edit1.nc
+
+3. run_append_topo_interp_smooth_tx1_12v1.GEBCO.pbs
+ adds a new depth variable "D_interp" using interpolation with light smoothing. This is the file and depth variable we want to use in the model.
+output = topo.sub25.tx1_12v1.GEBCO_2025.edit1.SmL1.0_C1.0.nc
+
+4. Channel_width_tx1_12v1.ipynb
+ sets subgrid channel widths for a few channels (Gibraltar, Bosphorus, Dardanelles)
+output = Channels_tx1_12v1_GEBCO_2025_12.19.2025.txt
+
+5. Channel_topo_tx1_12v1.ipynb
+creates a topo edit file for a few key straits and passages. These last two may need more work especially for the Bosphorus and Dardanelles along the lines of what you and Keith did for the workhorse model. I can't remember exactly what you guys ended up recommending though.
+output = TopoEdit_tx1_12v1_GEBCO_2025_12.19.2025.nc
